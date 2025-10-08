@@ -1,0 +1,346 @@
+dan 1. -> napravljena klasa, github repo, pocel s ovom dokumentacijom, otprilike skuzil arhitekturu i odigral par igrica da dobim feel
+NOTE: provjeri dal trebas uopce RF registar ili je to samo zadnji registar u arrayu
+dan 2. -> dodal stanje i sfml input handlere.
+
+
+
+
+
+
+
+
+
+
+
+
+
+CHIP-8
+
+35 opcode-ova (numerirana vrijednost koja predstavlja neku instrukciju)
+svaki opcode je dugi 2 bajta --> ako std::cerr<<sizeof(unsigned short) dobim ispis 2 bajta pa to koristim
+
+4 kilobajta memorije -> mogu koristiti array dugi 4096 elemenata da to predstavim
+unsinged char --> 	1 unsigned char (or more accurately, uint8_t) in your emulator's host code (like C/C++) 
+					corresponds precisely to 8 bits (one byte) of data stored at a single memory address in the emulated system.
+
+CPU registri -> 15 registara (8-bitni, general purpose, V0-V15), 16 registar se koristi za prijenosnu zastavicu
+isto unsigned char jer su 8 bitni
+
+
+indeksni registar I
+programsko brojilo PC
+oba mogu imati vrijednosti od 0x000 do 0xFFF -> unsigned short
+
+
+mapirana memorija
+0x000-0x1FF - Chip 8 interpreter (contains font set in emu)
+0x050-0x0A0 - Used for the built in 4x5 pixel font set (0-F)
+0x200-0xFFF - Program ROM and work RAM
+
+
+Grafika
+jedna instrukcija koja crta na ekran
+crtanje se radi prek XOR operacije
+ako se piksel ugasi kao rezultat crtanja odnosno XOR operacije -> detektirana kolizija i zapisuje se u VF registar
+
+Rezolucija
+64x32 = 2048 piksela -> matrica ili array stanja piksela tipa unsigned char jer mogu biti 1 ili 0 samo
+
+zakaj koristimo unsigned char a ne bool -> jer mi trebamo jedan BAJT a bool je jedan BIT
+iako bi se stanje pixela moglo prikazati kao bool array to ne radimo zbog instrukcije crtanja na ekran
+plus lakše zbog skaliranja kad svaki piksel postane 10x10
+
+Prekida i hardware registara nema
+Ima dva tajmer registara koji broje na 60 Hz -> unsigned char delay_timer; unsigned char sound_timer;
+kad su stavljeni iznad nula pocinju odbrojavati prema nuli
+
+
+
+Treba i implementirati stog i pokazivač stoga
+unsigned short stack[16]; unsigned short sp;
+razlog tome je kaj neke instrukcije rade skokove i pozivaju subrutine pa se stog koristi da se zapamti adresa zadnje instrukcije prije skoka
+odnosno pospremi se PC u stog prije skoka
+
+
+HEX based tipkovnica
+unsigned char [16]
+
+implementaciju chipa mozes u header fajlu napravit al nemoras
+
+
+
+
+
+
+
+
+
+---------------------------------------------------------
+1. Core Architecture
+
+You already have:
+
+A Chip8 class skeleton.
+
+A display buffer drawn to screen with SFML.
+
+A state system (Running, Paused, Quit).
+
+That’s a fantastic base.
+
+2. Next Steps in Order
+-------------------------------------------------------------
+Step 1: Memory + Registers
+
+Implement the 4K memory array and 16 registers (V0–VF).
+
+Add the I (index register), pc (program counter), sp (stack pointer), and the stack (16 entries).
+
+Set pc = 0x200 (programs load there).
+
+📖 Resource:
+CHIP-8 Technical Reference
+
+
+Step 2: Load a ROM
+
+Write Chip8::loadROM(const std::string &path) that loads bytes into memory[0x200…].
+
+Start with simple test ROMs (like “IBM Logo”).
+
+📖 Resource:
+
+Zophar’s CHIP-8 ROMs archive
+
+
+Step 3: The Emulation Cycle
+
+Every cycle = fetch → decode → execute:
+
+Fetch: opcode = memory[pc] << 8 | memory[pc + 1];
+
+Decode: split opcode into nibbles.
+
+Execute: switch on opcode and update state.
+
+📖 Resource:
+
+The opcode table: Cowgod’s CHIP-8 reference
+
+
+Step 4: Implement Opcodes
+
+Don’t try all at once — do groups:
+
+Clear / Return / Jump / Call (00E0, 00EE, 1nnn, 2nnn).
+
+Registers / Arithmetic (6xkk, 7xkk, 8xy*).
+
+Drawing (Dxyn) → hook into your display buffer.
+
+Input (Ex9E, ExA1).
+
+Timers (Fx07, Fx15, Fx18).
+
+Start with a few → test with ROMs → expand.
+
+📖 Resource:
+
+Lazy Foo’s CHIP-8 guide (SDL based, but logic is same): Lazy CHIP-8
+
+
+Step 5: Timers
+
+Delay timer & sound timer: both count down at 60 Hz if > 0.
+
+Hook them to a real clock (use std::chrono or SFML’s sf::Clock).
+
+Sound timer: just std::cout << "BEEP\n"; at first, later add audio.
+
+
+Step 6: Input
+
+Map SFML keys to the 16 CHIP-8 hex keys.
+
+Example:
+1 2 3 C        -> 1 2 3 4
+4 5 6 D        -> Q W E R
+7 8 9 E   ==>  -> A S D F
+A 0 B F        -> Z X C V
+
+
+Step 7: Test + Debug
+
+Run test ROMs like “BC_test.ch8” (used for verifying opcode correctness).
+
+If graphics look scrambled, your drawing opcode or scaling is off.
+
+If timing feels wrong, adjust your cycle speed.
+
+
+
+Suggested Roadmap (with milestones)
+
+Day 1–2: Memory + registers + ROM loading.
+
+Day 3–4: Fetch/decode loop, implement jumps/calls.
+
+Day 5–6: Drawing opcode (Dxyn) → see first pixels from a ROM.
+
+Day 7–8: Arithmetic & logic ops.
+
+Day 9–10: Input + timers.
+
+Day 11+: Debug with test ROMs, polish with pause/reset, maybe add sound.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+HINT
+// ===============================
+// CHIP-8 Emulator Skeleton
+// ===============================
+
+#pragma once
+#include <cstdint>
+#include <fstream>
+#include <cstring>
+
+class Chip8 {
+public:
+    // ===============================
+    // CHIP-8 Components
+    // ===============================
+    uint8_t  memory[4096];       // 4K memory
+    uint8_t  V[16];              // 16 general-purpose registers V0–VF
+    uint16_t I;                  // Index register
+    uint16_t pc;                 // Program counter
+
+    uint16_t stack[16];          // Call stack
+    uint8_t  sp;                 // Stack pointer
+
+    uint8_t  delay_timer;        // Delay timer
+    uint8_t  sound_timer;        // Sound timer
+
+    uint8_t  keypad[16];         // Input (hex-based keys 0x0–0xF)
+    uint8_t  pixel_state[32][64]; // Display buffer (64x32)
+
+    // ===============================
+    // Public Methods
+    // ===============================
+    void initialize();
+    void loadROM(const char* filename);
+    void emulateCycle();
+};
+
+// ===============================
+// Implementation
+// ===============================
+
+void Chip8::initialize() {
+    // Clear display, stack, registers, memory
+    std::memset(memory, 0, sizeof(memory));
+    std::memset(V, 0, sizeof(V));
+    std::memset(stack, 0, sizeof(stack));
+    std::memset(pixel_state, 0, sizeof(pixel_state));
+    std::memset(keypad, 0, sizeof(keypad));
+
+    // Reset registers
+    I = 0;
+    sp = 0;
+    pc = 0x200;  // Program counter starts at 0x200
+
+    // Reset timers
+    delay_timer = 0;
+    sound_timer = 0;
+
+    // Load CHIP-8 fontset into memory starting at 0x50 (80)
+    static const uint8_t chip8_fontset[80] = {
+        0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+        0x20, 0x60, 0x20, 0x20, 0x70, // 1
+        0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+        0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+        0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+        0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+        0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+        0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+        0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+        0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+        0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+        0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+        0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+        0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+        0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+        0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+    };
+    for (int i = 0; i < 80; ++i)
+        memory[0x50 + i] = chip8_fontset[i];
+}
+
+void Chip8::loadROM(const char* filename) {
+    std::ifstream file(filename, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) return;
+
+    std::streampos size = file.tellg();
+    char* buffer = new char[size];
+
+    file.seekg(0, std::ios::beg);
+    file.read(buffer, size);
+    file.close();
+
+    for (long i = 0; i < size; ++i)
+        memory[0x200 + i] = static_cast<uint8_t>(buffer[i]);
+
+    delete[] buffer;
+}
+
+void Chip8::emulateCycle() {
+    // 1. Fetch Opcode
+    uint16_t opcode = memory[pc] << 8 | memory[pc + 1];
+
+    // 2. Decode Opcode
+    // (You’ll add a big switch-case here to handle all 35 opcodes)
+
+    // 3. Execute Opcode
+    // ...
+
+    // 4. Update timers
+    if (delay_timer > 0) --delay_timer;
+    if (sound_timer > 0) --sound_timer;
+}
+
+
