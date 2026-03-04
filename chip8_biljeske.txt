@@ -344,3 +344,21 @@ void Chip8::emulateCycle() {
 }
 
 
+
+
+
+DNEVNIK
+probal sam ovak fetchat funkcije:
+opcode = memory[PC + 0] + memory[PC + 1];
+std::cout << "\nprva instrukcija:" << opcode; //224 -> E0 a 00E0 je clear display
+opcode = memory[PC + 2];
+std::cout << "\ndruga instrukcija:" << opcode; //162 -> A2
+
+ali instrukcije su 2 bajta i moraju se tak skupa citat
+
+
+http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#dispcoords
+https://multigesture.net/articles/how-to-write-an-emulator-chip-8-interpreter/
+https://en.wikipedia.org/wiki/CHIP-8#Virtual_machine_description
+https://archive.org/details/bitsavers_rcacosmacCManual1978_6956559/page/n14/mode/1up
+https://austinmorlan.com/posts/chip8_emulator/
