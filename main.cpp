@@ -8,6 +8,8 @@
 #include <ctime>
 #include <random>
 
+//todo -> instrukcija koja ceka input, subrutine i tajmer
+// keypad se mora resetirati nakon svakog pc += 2
 //skalirana rezolucija x10
 const int Screen_width = 640;
 const int Screen_height = 320;
@@ -26,7 +28,7 @@ enum class State {
 class Chip8 {
 public:
     State state;
-    unsigned short opcode; //ili opcode [35] jer ih je tolko
+    unsigned short opcode;
     unsigned char memory[4096];
     //registri
     unsigned char R[15];
@@ -35,7 +37,7 @@ public:
     unsigned short PC = 0x200;
     //IO ureðaji
     unsigned char pixel_state[32][64];
-    unsigned char keypad[16];
+    bool keypad[16];
     //tajmeri
     unsigned char delay_timer;
     unsigned char sound_timer;
@@ -48,7 +50,7 @@ public:
         memset(R, 0, sizeof(R));
         memset(pixel_state, 0, sizeof(pixel_state));
         memset(stack, 0, sizeof(stack));
-        //memset(opcode, 0, sizeof(opcode));
+        memset(keypad, false, sizeof(keypad));
 
         RF = 0;
         PC = 0x200;  // Program counter starts at 0x200
@@ -114,6 +116,10 @@ public:
         datoteèni pokazivaè na poèetak
         uèitaj sadržaj u buffer
         */
+    }
+
+    void ResetKeypad() {
+        memset(keypad, false, sizeof(keypad));
     }
 
     void Cycle() {
@@ -258,6 +264,19 @@ public:
             PC += 2;
         }
     }
+    if ((opcode & 0xF000) == 0xE000){
+        unsigned int reg_x = (opcode & 0x0F00) >> 8;
+        if((opcode & 0x00FF) == 0x009E){
+            if (keypad[reg_x] == true) {
+                PC += 2;
+            }
+        }
+        if ((opcode & 0x00FF) == 0x00A1){
+            if (keypad[reg_x] == false) {
+                PC += 2;
+            }
+        }
+    }
     PC += 2;
     return;
     }
@@ -303,10 +322,7 @@ int main() {
             }
             if(event.type == sf::Event::KeyPressed){
                 switch (event.key.code) {
-                    case sf::Keyboard::W:
-                        std::cerr << "up\n";
-                        break;
-                    case sf::Keyboard::Q:
+                    case sf::Keyboard::Escape:
                         chip8.state = State::Quit;
                         std::cerr << "gasim\n";
                         break;
@@ -324,9 +340,57 @@ int main() {
                         chip8.loadROM(ROM);
                         rom_loaded = true;
                         break;
-                    case sf::Keyboard::R:
+                    case sf::Keyboard::Backspace:
                         chip8.PC = 0x200;
                         std::cerr << "\nresetiram PC";
+                        break;
+                    case sf::Keyboard::Num1:
+                        chip8.keypad[0] = true;
+                        break;
+                    case sf::Keyboard::Num2:
+                        chip8.keypad[1] = true;
+                        break;
+                    case sf::Keyboard::Num3:
+                        chip8.keypad[2] = true;
+                        break;
+                    case sf::Keyboard::Num4:
+                        chip8.keypad[3] = true;
+                        break;
+                    case sf::Keyboard::Q:
+                        chip8.keypad[4] = true;
+                        break;
+                    case sf::Keyboard::W:
+                        chip8.keypad[5] = true;
+                        break;
+                    case sf::Keyboard::E:
+                        chip8.keypad[6] = true;
+                        break;
+                    case sf::Keyboard::R:
+                        chip8.keypad[7] = true;
+                        break;
+                    case sf::Keyboard::A:
+                        chip8.keypad[8] = true;
+                        break;
+                    case sf::Keyboard::S:
+                        chip8.keypad[9] = true;
+                        break;
+                    case sf::Keyboard::D:
+                        chip8.keypad[10] = true;
+                        break;
+                    case sf::Keyboard::F:
+                        chip8.keypad[11] = true;
+                        break;
+                    case sf::Keyboard::Y:
+                        chip8.keypad[12] = true;
+                        break;
+                    case sf::Keyboard::X:
+                        chip8.keypad[13] = true;
+                        break;
+                    case sf::Keyboard::C:
+                        chip8.keypad[14] = true;
+                        break;
+                    case sf::Keyboard::V:
+                        chip8.keypad[15] = true;
                         break;
                     default:
                         std::cerr << "- - - - - - - - - - - - - - - - - - - - - - - - - - Glavni izbornik - - - - - - - - - - - - - - - - - - - - - - - - - -" << std::endl;
@@ -334,8 +398,9 @@ int main() {
             }
         }
         if (rom_loaded) {
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 10; i++) {//tu mogu ubrzat fps
                 chip8.Cycle();
+                chip8.ResetKeypad();
             }
         }
         window.clear(sf::Color::Blue);
