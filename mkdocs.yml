@@ -1,0 +1,6 @@
+site_name: Chip8
+nav:
+- Home: index.md
+- Author: author.md
+theme: material
+#bootstrap386
