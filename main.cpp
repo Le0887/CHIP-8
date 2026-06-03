@@ -7,13 +7,18 @@
 #include <string>
 #include <ctime>
 #include <random>
+#include <windows.h>
+
+extern "C" {
+    #include "tinyFileDialogs/tinyfiledialogs.h"
+}
 
 //todo -> instrukcija koja ceka input, subrutine i tajmer
 // keypad se mora resetirati nakon svakog pc += 2
 //skalirana rezolucija x10
 const int Screen_width = 640;
 const int Screen_height = 320;
-const char* ROM = "C:\\Users\\Leo\\Downloads\\Pong (1 player).ch8";
+std::string ROM = "";
 //C:\\Users\\Leo\\Downloads\\Maze (alt) [David Winter, 199x](1).ch8
 //C:\\Users\\Leo\\Downloads\\IBM_Logo.ch8
 //"C:\\Users\\Leo\\Downloads\\test_opcode.ch8"
@@ -56,6 +61,9 @@ public:
         PC = 0x200;  // Program counter starts at 0x200
         I = 0;      // Reset index register
         sp = 0;      // Reset stack pointer
+
+        delay_timer = 0;
+        sound_timer = 0;
         
         // Load fontset
         const unsigned int fontset_starting_adress = 0x50; //ne pocinje na 0 jer je povijesno tam bil mali interpreter
@@ -86,7 +94,7 @@ public:
         sound_timer = 0;
     }
 
-    void loadROM(const char * file){
+    void loadROM(std::string file){
         std::fstream dat;
         dat.open(file, std::ios::in | std::ios::ate | std::ios::binary);
         if (!dat.is_open()) {
@@ -109,13 +117,6 @@ public:
         }
 
         delete[] buffer;
-
-        /*
-        datoteèni pokazivaè na kraj da dobiš velièinu datoteke
-        alociraj buffer za sve podatke
-        datoteèni pokazivaè na poèetak
-        uèitaj sadržaj u buffer
-        */
     }
 
     void ResetKeypad() {
@@ -277,6 +278,19 @@ public:
             }
         }
     }
+    if ((opcode & 0xF0FF) == 0xF007) {
+        unsigned int reg_x = (opcode & 0x0F00) >> 8;
+        R[reg_x] = delay_timer;
+    }
+    if ((opcode & 0xF0FF) == 0xF00A) {
+        //TODO:
+        /*Wait for a key press, store the value of the key in Vx.
+        All execution stops until a key is pressed, then the value of that key is stored in Vx.*/
+    }
+    if ((opcode & 0xF0FF) == 0xF015) {
+        unsigned int reg_x = (opcode & 0x0F00) >> 8;
+        delay_timer = R[reg_x];
+    }
     PC += 2;
     return;
     }
@@ -305,6 +319,13 @@ int main() {
 
     sf::RenderWindow window(sf::VideoMode(Screen_width, Screen_height), "CHIP-8");
     window.setFramerateLimit(5);
+
+    if (ROM.empty()) {
+        std::string path = tinyfd_openFileDialog("Select File", "", 0, NULL, NULL, 0);
+        if (!path.empty() && path[path.length() - 1] == '8') ROM = path;
+    }
+    chip8.loadROM(ROM);
+    rom_loaded = true;
 
     if (!window.isOpen()) {
         std::cerr << "Error: Could not create window." << std::endl;
@@ -335,10 +356,6 @@ int main() {
                             }
                         }
                         std::cerr << std::endl << ROM << std::endl;
-                        break;
-                    case sf::Keyboard::L:
-                        chip8.loadROM(ROM);
-                        rom_loaded = true;
                         break;
                     case sf::Keyboard::Backspace:
                         chip8.PC = 0x200;
@@ -398,6 +415,8 @@ int main() {
             }
         }
         if (rom_loaded) {
+            //tinyfd_beep();
+            //Beep(750, 300);
             for (int i = 0; i < 10; i++) {//tu mogu ubrzat fps
                 chip8.Cycle();
                 chip8.ResetKeypad();

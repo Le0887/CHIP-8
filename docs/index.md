@@ -30,4 +30,9 @@ How to run chip-8 programs:
         index.md  # The documentation homepage.
         ...       # Other markdown pages, images and other files.
 
+## Sources
+[Chip 8 technical reference by Cowgod](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
+[Wikipedia page](https://en.wikipedia.org/wiki/CHIP-8)
+[Extensive library of resources](https://chip-8.github.io/links/)
+
 ##
